@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Explorer of TSD Openers</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 4px;
+            text-align: left;
+        }
+        div.fumen {
+            position: relative;
+        }
+        .clipboard_button {
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            right: 4px;
+            top: 4px;
+            text-align: center;
+            line-height: 20px;
+            cursor: pointer;
+            color: #2ee700;
+        }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+<body>
+    <h1>Table Explorer of TSD Openers</h1>
+    <!--input type="file" id="csvFile" accept=".csv"-->
+    <!-- <a id="mc_tsd_a">mc_tsd</a>
+    <a id="mc_tsd_nohole_a">mc_tsd_nohole</a> -->
+    <a href="nope" id="tsd_a">[TSD Openers]</a>
+    <a href="nope" id="tsd_nohole_a">[TSD Openers (No Hole)]</a>
+    <a href="nope" id="mc_tsd_resolved_a">[Minimal Coverring TSD Openers Set by Count]</a>
+    <a href="nope" id="mc_tsd_nohole_resolved_a">[Minimal Coverring TSD Openers Set by Count (No Hole)]</a>
+    <br>
+    <button disabled onclick="copy_csv()" id="copy_csv_button">copy csv text</button>
+    <hr>
+    hover image to copy fumen code
+    <br>
+    <div id="output">rendering...</div>
+
+    <script src="./tetris-fumen.js"></script>
+	<script src="./modified-glueFumen.js"></script>
+	<script src="./modified-unglueFumen.js"></script>
+	<script src="./modified-mirrorFumen.js"></script>
+	<script src="./modified-combineFumen.js"></script>
+	<script src="./modified-splitFumen.js"></script>
+    <script src="./modified-removeComments.js"></script>
+    <script src="./modified-lockFumen.js"></script>
+    <script src="./modified-grayoutAll.js"></script>
+	<script src="./modified-grayoutLast.js"></script>
+	<script type="text/javascript" src="LZWEncoder.js"></script>
+	<script type="text/javascript" src="NeuQuant.js"></script>
+	<script type="text/javascript" src="GIFEncoder.js"></script>
+	<script type="text/javascript" src="b64.js"></script>
+	<script src="./modified-fumen-canvas.js"></script>
+    <script src="./modified-fumen-render.js"></script>
+    <script src="./resources.js"></script>
+    <script>
+        function fallbackCopyTextToClipboard(text) {
+          var textArea = document.createElement("textarea");
+          textArea.value = text;
+          
+          // Avoid scrolling to bottom
+          textArea.style.top = "0";
+          textArea.style.left = "0";
+          textArea.style.position = "fixed";
+        
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+        
+          try {
+            var successful = document.execCommand('copy');
+            var msg = successful ? 'successful' : 'unsuccessful';
+            console.log('Fallback: Copying text command was ' + msg);
+          } catch (err) {
+            console.error('Fallback: Oops, unable to copy', err);
+          }
+        
+          document.body.removeChild(textArea);
+        }
+        function copyTextToClipboard(text) {
+          if (!navigator.clipboard) {
+            fallbackCopyTextToClipboard(text);
+            return;
+          }
+          navigator.clipboard.writeText(text).then(function() {
+            console.log('Async: Copying to clipboard was successful!');
+          }, function(err) {
+            console.error('Async: Could not copy text: ', err);
+          });
+        }
+        let load = function (csvContent) {
+            const rows = csvContent.split("\n").map(row => row.split(","));
+            const table = document.createElement("table");
+            rows.forEach((row, rowIndex) => {
+                const tr = document.createElement("tr");
+                row.forEach((cell, colIndex) => {
+                    const cellElement = rowIndex === 0 ? document.createElement("th") : document.createElement("td");
+                    let text = cell.trim();
+                    if (rowIndex === 0) {
+                        cellElement.innerText = text
+                    }
+                    else {
+                        if (text.includes("v115@")) {
+                            let imgs = fumencanvas_single([text])
+                            let divs = imgs.map((img) => {
+                                // img.onclick = () => {alert("fumen code:\n".concat(text))}
+                                let div = document.createElement("div")
+                                div.classList.add("fumen")
+                                $(div).attr("data-fumen",text)
+                                div.appendChild(img)
+                                return div
+                            })
+                            cellElement.append(...divs)
+                        }
+                        else if (rows[0][colIndex].includes("percent")) {
+                            if (text.includes("%")) {
+                                cellElement.innerText = text
+                            }
+                            else {
+                                cellElement.innerText = text.concat("%")
+                            }
+                        }
+                        else {
+                            cellElement.innerText = text
+                        }
+                    }
+                    tr.appendChild(cellElement);
+                });
+                table.appendChild(tr);
+            });
+            const output = document.getElementById("output");
+            output.innerHTML = ""; // Clear previous content)
+            output.appendChild(table);
+        };
+        function getParameterByName(name, url = window.location.href) {
+            name = name.replace(/[\[\]]/g, '\\$&');
+            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+        let target = ""
+        switch (getParameterByName("page")){
+            case "mc_tsd": {target = mc_tsd_csv; break}
+            case "mc_tsd_nohole": {target = mc_tsd_nohole_csv; break}
+            case "tsd_nohole": {target = tsd_nohole_csv; break}
+            case "tsd": {target = tsd_csv; break}
+            case "mc_tsd_resolved": {target = mc_tsd_resolved; break}
+            case "mc_tsd_nohole_resolved": {target = mc_tsd_nohole_resolved; break}
+            default: {target = tsd_csv; break}
+        }
+        load(target)
+        let copy_csv_button = document.getElementById("copy_csv_button")
+        copy_csv_button.toggleAttribute("disabled")
+        function copy_csv() {
+            copyTextToClipboard(target)
+            copy_csv_button.innerText = "(Copied!)"
+            setTimeout(()=>{copy_csv_button.innerText = "copy csv text"},1500)
+        }
+        // document.getElementById("mc_tsd_a").setAttribute("href",window.location.href.concat("?page=mc_tsd"))
+        // document.getElementById("mc_tsd_nohole_a").setAttribute("href",window.location.href.concat("?page=mc_tsd_nohole"))
+        document.getElementById("tsd_nohole_a").setAttribute("href",window.location.href.split("?")[0].concat("?page=tsd_nohole"))
+        document.getElementById("tsd_a").setAttribute("href",window.location.href.split("?")[0].concat("?page=tsd"))
+        document.getElementById("mc_tsd_resolved_a").setAttribute("href",window.location.href.split("?")[0].concat("?page=mc_tsd_resolved"))
+        document.getElementById("mc_tsd_nohole_resolved_a").setAttribute("href",window.location.href.split("?")[0].concat("?page=mc_tsd_nohole_resolved"))
+
+        $('div.fumen').each(function() {
+            if ($(this).hasClass('clipboard_inited')){
+                return;
+            }
+            $(this).hover(
+                function(){
+                    $(this).append('<div class="clipboard_button">📋</div>');
+                    $(this).find(".clipboard_button").click(function() {
+                            let fumen = $(this).parent().attr('data-fumen');
+                            navigator.clipboard.writeText(fumen);
+                            $(this).text("Copied!").css("background-color","#333").css("width","80px")
+                        }
+                    );
+                },
+                function(){
+                    $(this).find(".clipboard_button").remove();
+                }
+            );
+            $(this).addClass('clipboard_inited');
+        });
+    </script>
+</body>
+</html>
