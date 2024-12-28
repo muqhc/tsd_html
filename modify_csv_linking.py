@@ -14,13 +14,13 @@ for ri,c in enumerate(mc_tsd_nohole_csv_cols[2:]):
     i = ri + 2
     for rj,v in enumerate(c[1:]):
         j = rj + 1
-        if v: mc_tsd_nohole_csv_cols_resolved[i][j] = tsd_nohole_csv_cols[3][int(v)]
+        if v: mc_tsd_nohole_csv_cols_resolved[i][j] = tsd_nohole_csv_cols[3][int(v)+1]
 
 for ri,c in enumerate(mc_tsd_csv_cols[2:]):
     i = ri + 2
     for rj,v in enumerate(c[1:]):
         j = rj + 1
-        if v: mc_tsd_csv_cols_resolved[i][j] = tsd_csv_cols[3][int(v)]
+        if v: mc_tsd_csv_cols_resolved[i][j] = tsd_csv_cols[3][int(v)+1]
 
 with open("mc_tsd_nohole_resolved.csv","w",encoding="utf-8") as file1:
     file1.write("\n".join(list(map(lambda x: ",".join(x), list(zip(*mc_tsd_nohole_csv_cols_resolved))))))
